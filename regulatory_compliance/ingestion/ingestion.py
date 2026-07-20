@@ -1,20 +1,21 @@
 import re
 from pathlib import Path
+
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from regulatory_compliance.core.config import settings
- 
- 
+
+
 class PDFIngestion:
     """
     Handles PDF loading, cleaning and chunking.
     """
- 
+
     def __init__(self):
- 
-        self.splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder
-        (
+
+        self.splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP,
             separators=[
@@ -25,81 +26,103 @@ class PDFIngestion:
                 "",
             ],
         )
- 
+
     def ingest(self, pdf_path: str) -> list[Document]:
-        """
-        Complete ingestion pipeline.
-        """
- 
+
         path = Path(pdf_path)
- 
+
         if not path.exists():
+
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
- 
-        # Load PDF
+
         loader = PyPDFLoader(str(path))
+
         documents = loader.load()
- 
-        # Clean text
+
         cleaned_documents = self.clean_documents(documents)
- 
-        # Add metadata
+
         enriched_documents = self.add_metadata(cleaned_documents, path.name)
- 
-        # Split into chunks
+
         chunks = self.split_documents(enriched_documents)
+
+        print("Total chunks created:", len(chunks))
+
         return chunks
- 
+
     def clean_documents(
         self,
         documents: list[Document],
     ) -> list[Document]:
-        """
-        Clean extracted text.
-        """
- 
+
         cleaned = []
- 
+
         for document in documents:
- 
-            text = document.page_content
- 
-            # # Remove excessive whitespace
-            # text = re.sub(r"\s+", " ", text)
- 
-            # # Remove non-printable characters
-            # text = re.sub(r"[^\x20-\x7E]+", " ", text)
- 
-            document.page_content = text.strip()
- 
+
+            document.page_content = document.page_content.strip()
+
             cleaned.append(document)
- 
+
         return cleaned
- 
+
     def add_metadata(
         self,
         documents: list[Document],
         file_name: str,
     ) -> list[Document]:
-        """
-        Preserve metadata for future retrieval.
-        """
- 
+
         for document in documents:
- 
-            document.metadata["source"] = file_name
-            document.metadata.setdefault("page", 0)
-            document.metadata["section_number"] = None
-            document.metadata["regulation_type"] = None
- 
+
+            page_number = document.metadata.get("page", 0)
+
+            document.metadata.update(
+                {
+                    "file_name": file_name,
+                    "page_number": page_number + 1,
+                    "section_number": self.extract_section(document.page_content),
+                    "regulation_type": self.detect_regulation_type(file_name),
+                }
+            )
+
         return documents
- 
+
+    def extract_section(self, text: str):
+
+        patterns = [
+            r"SECTION\s+(\d+)",
+            r"Section\s+(\d+)",
+            r"Clause\s+(\d+(\.\d+)*)",
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(pattern, text, re.IGNORECASE)
+
+            if match:
+                return match.group(1)
+
+        return None
+
+    def detect_regulation_type(self, file_name: str):
+
+        name = file_name.lower()
+
+        if "rbi" in name:
+
+            return "RBI"
+
+        if "sebi" in name:
+
+            return "SEBI"
+
+        if "basel" in name:
+
+            return "Basel"
+
+        return "Internal"
+
     def split_documents(
         self,
         documents: list[Document],
     ) -> list[Document]:
-        """
-        Split documents into chunks.
-        """
- 
+
         return self.splitter.split_documents(documents)

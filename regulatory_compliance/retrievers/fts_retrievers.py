@@ -1,7 +1,6 @@
+import json
 from typing import List
-
 from langchain_core.documents import Document
-
 from regulatory_compliance.core.db import Database
 
 
@@ -12,7 +11,6 @@ class FTSRetriever:
     Uses:
     - PostgreSQL tsvector
     - ts_rank_cd
-    - GIN index
     """
 
     def __init__(self, top_k: int = 8):
@@ -26,50 +24,26 @@ class FTSRetriever:
         SELECT
 
             content,
-
             document_id,
-
             chunk_index,
-
             metadata,
-
-
             ts_rank_cd(
-
                 tsv,
-
                 plainto_tsquery(
-                    'simple',
+                    'english',
                     %s
                 )
 
             ) AS fts_score
 
-
         FROM document_chunks
-
-
-
         WHERE
-
-
             tsv @@ plainto_tsquery(
-
-                'simple',
-
+                'english',
                 %s
-
             )
-
-
-
         ORDER BY
-
-
             fts_score DESC
-
-
-
         LIMIT %s
 
         """
@@ -87,22 +61,31 @@ class FTSRetriever:
         for row in rows:
 
             content = row[0]
-
             document_id = row[1]
-
             chunk_index = row[2]
-
             stored_metadata = row[3] or {}
+            if isinstance(stored_metadata, str):
+                stored_metadata = json.loads(stored_metadata)
 
+            stored_metadata["file_name"] = (
+                stored_metadata.get("file_name")
+                or stored_metadata.get("source")
+                or "Unknown"
+            )
+
+            stored_metadata["page_number"] = (
+                stored_metadata.get("page_number") or stored_metadata.get("page", 0) + 1
+            )
+
+            stored_metadata["section_number"] = (
+                stored_metadata.get("section_number") or "N/A"
+            )
             fts_score = float(row[4])
-
             metadata = {
                 # Preserve ingestion metadata
                 **stored_metadata,
-                # Database metadata
                 "document_id": str(document_id),
                 "chunk_index": chunk_index,
-                # Retrieval metadata
                 "fts_score": fts_score,
                 "retrieval_method": "fts_search",
             }
