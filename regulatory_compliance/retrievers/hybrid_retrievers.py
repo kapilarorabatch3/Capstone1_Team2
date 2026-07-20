@@ -1,7 +1,5 @@
 from typing import List, Dict
-
 from langchain_core.documents import Document
-
 from regulatory_compliance.retrievers.vector_retrievers import VectorRetriever
 from regulatory_compliance.retrievers.fts_retrievers import FTSRetriever
 
@@ -69,7 +67,8 @@ class HybridRetriever:
 
                 # Merge metadata
 
-                documents[key].metadata.update(doc.metadata)
+                #               documents[key].metadata.update(doc.metadata)
+                doc.metadata["retrieval_method"] = "hybrid_search"
 
             else:
 
@@ -87,10 +86,13 @@ class HybridRetriever:
 
             doc = documents[key]
 
+            doc.metadata["hybrid_score"] = score
+            doc.metadata["retrieval_method"] = "hybrid_search"
+
             doc.metadata.update(
                 {
-                    "hybrid_score": round(score, 6),
-                    "retrieval_method": "hybrid_search",
+                    # "hybrid_score": round(score, 6),
+                    # "retrieval_method": "hybrid_search",
                     "retrieval_details": {
                         "vector_score": doc.metadata.get("vector_score"),
                         "fts_score": doc.metadata.get("fts_score"),

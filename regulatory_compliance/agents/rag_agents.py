@@ -92,9 +92,9 @@
 
 import time
 from typing import List, Dict
-
 from langsmith import traceable
-
+from regulatory_compliance.retrievers.vector_retrievers import VectorRetriever
+from regulatory_compliance.retrievers.fts_retrievers import FTSRetriever
 from regulatory_compliance.retrievers.hybrid_retrievers import HybridRetriever
 from regulatory_compliance.services.llm_service import LLMService
 
@@ -115,8 +115,9 @@ class RAGAgent:
 
     def __init__(self):
 
-        self.retriever = HybridRetriever(top_k=5)
-
+        self.vector_retriever = VectorRetriever(top_k=5)
+        self.fts_retriever = FTSRetriever(top_k=5)
+        self.hybrid_retriever = HybridRetriever(top_k=5)
         self.llm_service = LLMService()
 
     def is_chitchat(self, question: str):
@@ -178,12 +179,14 @@ class RAGAgent:
         # Retrieval
         # -------------------------
 
-        #
-        # Currently HybridRetriever
-        # is the main retriever
-        #
+        if tool_name == "vector_search":
+            documents = self.vector_retriever.search(question)
 
-        documents = self.retriever.search(question)
+        elif tool_name == "fts_search":
+            documents = self.fts_retriever.search(question)
+
+        else:
+            documents = self.hybrid_retriever.search(question)
 
         if not documents:
 
@@ -204,18 +207,18 @@ class RAGAgent:
         # -------------------------
 
         context = "\n\n".join([(f"""
-Source:
-{doc.metadata.get('file_name')}
+        Source:
+        {doc.metadata.get('file_name')}
 
-Page:
-{doc.metadata.get('page_number')}
+        Page:
+        {doc.metadata.get('page_number')}
 
-Section:
-{doc.metadata.get('section_number')}
+        Section:
+        {doc.metadata.get('section_number')}
 
-Content:
-{doc.page_content}
-""") for doc in documents])
+        Content:
+        {doc.page_content}
+        """) for doc in documents])
 
         # -------------------------
         # LLM Answer
