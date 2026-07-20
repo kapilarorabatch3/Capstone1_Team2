@@ -10,3 +10,5 @@ Phase 4 - Upload API
 Phase 5 - PDF Integration
 Phase 6 - Pgvector, Chunking, embeddings 
 
+#comments
+uv run uvicorn app.main:app --reload
