@@ -10,5 +10,18 @@ Phase 4 - Upload API
 Phase 5 - PDF Integration
 Phase 6 - Pgvector, Chunking, embeddings 
 
+
+
+FastAPI as the backend
+Streamlit as the frontend
+LangChain for orchestration
+PostgreSQL + pgvector for storage
+Hybrid Retrieval (Vector + FTS)
+Agent-based architecture
+Logging
+Configuration management
+Unit tests
+Docker support
+GitHub Actions (CI/CD)
 #comments
 uv run uvicorn app.main:app --reload

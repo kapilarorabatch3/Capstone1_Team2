@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from regulatory_compliance.core.config import settings
