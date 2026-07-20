@@ -23,3 +23,5 @@ Configuration management
 Unit tests
 Docker support
 GitHub Actions (CI/CD)
+#comments
+uv run uvicorn app.main:app --reload
