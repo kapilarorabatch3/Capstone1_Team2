@@ -85,41 +85,6 @@ class PDFIngestion:
 
         return documents
 
-    def extract_section(self, text: str):
-
-        patterns = [
-            r"SECTION\s+(\d+)",
-            r"Section\s+(\d+)",
-            r"Clause\s+(\d+(\.\d+)*)",
-        ]
-
-        for pattern in patterns:
-
-            match = re.search(pattern, text, re.IGNORECASE)
-
-            if match:
-                return match.group(1)
-
-        return None
-
-    def detect_regulation_type(self, file_name: str):
-
-        name = file_name.lower()
-
-        if "rbi" in name:
-
-            return "RBI"
-
-        if "sebi" in name:
-
-            return "SEBI"
-
-        if "basel" in name:
-
-            return "Basel"
-
-        return "Internal"
-
     def split_documents(
         self,
         documents: list[Document],
